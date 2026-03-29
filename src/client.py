@@ -1,18 +1,16 @@
 """
-Intelix static analysis client.
+Intelix static analysis HTTP client.
 
-This module is responsible for:
-1) Submitting a file to the Intelix static analysis endpoint.
-2) Handling both synchronous responses (HTTP 200) and async jobs (HTTP 202).
-3) Polling the job report endpoint until the final report JSON is available.
-4) Returning the decoded JSON payload to the caller.
+Uploads files to the regional static-analysis endpoint, handles synchronous
+responses and async jobs (202 + polling), and returns report JSON or None on failure.
 """
 
 import logging
 import time
-import requests
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import requests
 
 from auth import AuthClient
 from config import (
@@ -27,35 +25,23 @@ from config import (
 
 class IntelixClient:
     """
-    Coordinate Intelix static analysis API requests.
+    Coordinate Intelix static analysis requests.
 
     Responsibilities:
-    - Build final regional endpoint URL.
-    - Submit files for static analysis.
-    - Handle immediate and asynchronous responses.
-    - Poll report endpoint until final result is ready.
+    - Build the region-specific API URL.
+    - Submit files via multipart upload.
+    - Handle HTTP 200 vs 202 and poll until the report is ready.
     """
+
     def __init__(self):
-        """
-        Prepare reusable API state:
-        - auth helper
-        - region-adjusted base URL
-        - final static analysis endpoint
-        """
         self.auth = AuthClient()
         self.base_url = INTELIX_BASE_URL
         self.analysis_base_url = self._build_regional_url(self.base_url, INTELIX_REGION)
         self.static_analysis_url = f"{self.analysis_base_url}{INTELIX_STATIC_ANALYSIS_PATH}"
 
+    # e.g. api.labs.sophos.com + us → us.api.labs.sophos.com
     @staticmethod
     def _build_regional_url(base_url: str, region: str) -> str:
-        """
-        Convert a generic Intelix host into a region-specific host.
-
-        Example:
-        - input:  https://api.labs.sophos.com, region=us
-        - output: https://us.api.labs.sophos.com
-        """
         if "://" not in base_url:
             return f"https://{region}.{base_url}"
         scheme, host = base_url.split("://", 1)
@@ -63,18 +49,12 @@ class IntelixClient:
             return base_url
         return f"{scheme}://{region}.{host}"
 
+    # POST file; returns report dict or None.
     def analyze_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
-        """
-        Submit one file to Intelix static analysis.
-
-        Returns final report JSON as dict when successful, otherwise None.
-        """
         token = self.auth.get_access_token()
 
-        # Intelix uses the raw access token in Authorization (not "Bearer …").
-        headers = {
-            "Authorization": token
-        }
+        # Raw token in Authorization (not Bearer).
+        headers = {"Authorization": token}
 
         logging.info("Submitting file: %s", file_path.name)
 
@@ -93,19 +73,13 @@ class IntelixClient:
             logging.exception("Failed processing file: %s", file_path.name)
             return None
 
+    # 200 = report body; 202 = poll with jobId.
     def _handle_analysis_response(
         self,
         file_name: str,
         response: requests.Response,
         headers: Dict[str, str],
     ) -> Optional[Dict[str, Any]]:
-        """
-        Interpret submit response and return final report if available.
-
-        - 200: report is already available
-        - 202: job accepted; poll until report ready
-        - other: treat as failure
-        """
         if response.status_code == 200:
             logging.info("Received report immediately for %s", file_name)
             return response.json()
@@ -127,17 +101,8 @@ class IntelixClient:
         )
         return None
 
+    # Poll GET …/reports/{jobId} until 200, bad status, or timeout.
     def _poll_report(self, job_id: str, headers: Dict[str, str]) -> Optional[Dict[str, Any]]:
-        """
-        Poll Intelix report endpoint for an asynchronous job.
-
-        The polling loop stops when:
-        - report is ready (HTTP 200),
-        - an unrecoverable status is returned, or
-        - max attempts are exhausted.
-
-        Polling contract per GET: 200 = done, 202 = wait and retry, anything else = fail.
-        """
         report_url = f"{self.static_analysis_url}/reports/{job_id}"
 
         for attempt in range(1, INTELIX_MAX_POLL_ATTEMPTS + 1):

@@ -1,36 +1,31 @@
 """
-Report saving utilities.
+Intelix report persistence.
 
-Intelix returns analysis results as JSON. For this assignment we persist each
-report into a `.txt` file containing JSON (pretty-printed).
+Writes each API response (JSON) to a `.txt` file with UTF-8 encoding and pretty
+printing. Failed writes are logged; callers treat None as non-fatal.
 """
 
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class ReportManager:
     """
-    Persist Intelix report payloads to disk.
+    Save analysis reports to disk.
 
-    Reports are saved as `.txt` files (containing JSON text) to satisfy
-    assignment output requirements.
+    Responsibilities:
+    - Ensure the output directory exists.
+    - Write one `.txt` file per successful analysis.
     """
+
     def __init__(self, output_dir="reports"):
-        """
-        Initialize output directory path and ensure it exists.
-        """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Pretty JSON to <file_name>.txt; None on IO error.
     def save(self, file_name: str, data: Dict[str, Any]) -> Optional[Path]:
-        """
-        Save one report payload to `<output_dir>/<file_name>.txt`.
-
-        Returns the written path on success; returns None if writing fails.
-        """
         output_file = self.output_dir / f"{file_name}.txt"
 
         try:
