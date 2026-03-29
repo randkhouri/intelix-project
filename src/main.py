@@ -1,149 +1,197 @@
 """
-Command-line entry point for the Intelix static analysis assignment.
+Command-line entry point for the Intelix static analysis client.
 
 Responsibilities:
-- Parse CLI arguments for the three input files (exe/word/pdf).
-- Validate required configuration and input file existence/extensions.
-- Submit each file to Intelix and save the returned JSON as a `.txt` file.
-- Log all activity and errors to standard output.
+- Read configuration from the environment (.env).
+- Discover .exe, .doc/.docx, and .pdf files under a configurable directory (default: ./files).
+- Respect a per-category cap (default: 20 files each for exe, word, pdf).
+- Submit each file to SophosLabs Intelix static analysis and save JSON reports as .txt.
+- Log activity and errors to standard output.
 """
 
+import argparse
 import logging
 import sys
-import argparse
+from collections import defaultdict
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 from client import IntelixClient
-from reporter import ReportManager
 from config import validate_required_config
+from reporter import ReportManager
 
 
 logging.basicConfig(
-    # Configure global logging format and direct logs to stdout.
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse required CLI arguments for the assignment run.
+    Parse CLI arguments.
 
-    The script requires exactly three file types:
-    - Windows executable
-    - Word document
-    - PDF document
+    By default the program scans ./files. Override with --files-dir.
     """
-    # Parse command line arguments for the three required files.
     parser = argparse.ArgumentParser(
-        description="Submit .exe, .doc/.docx, and .pdf files to SophosLabs Intelix static analysis."
+        description=(
+            "Submit all .exe, .doc/.docx, and .pdf files from a directory "
+            "to SophosLabs Intelix static analysis (per-type limit applies)."
+        )
     )
-    """
-    Input contract:
-    - `--exe`: one Windows executable
-    - `--word`: one Word document
-    - `--pdf`: one PDF
-    - `--output-dir`: where report TXT files are written
-    """
-    parser.add_argument("--exe", required=True, help="Path to Windows executable file")
-    parser.add_argument("--word", required=True, help="Path to Word document (.doc or .docx)")
-    parser.add_argument("--pdf", required=True, help="Path to PDF document")
+    parser.add_argument(
+        "--files-dir",
+        default="files",
+        help="Directory containing input files (default: files)",
+    )
     parser.add_argument(
         "--output-dir",
         default="reports",
-        help="Directory to save JSON reports as .txt files (default: reports)",
+        help="Directory for JSON reports saved as .txt (default: reports)",
+    )
+    parser.add_argument(
+        "--max-per-type",
+        type=int,
+        default=20,
+        help="Max files to analyze per category: exe, word, pdf (default: 20)",
     )
     return parser.parse_args()
 
 
-def validate_input_file(file_path: Path, allowed_suffixes: tuple[str, ...]) -> bool:
-    """
-    Validate a single input file path against existence and extension rules.
+def _classify_file(path: Path) -> str | None:
+    """Return bucket name exe | word | pdf, or None if not a supported type."""
+    if not path.is_file():
+        return None
+    ext = path.suffix.lower()
+    if ext == ".exe":
+        return "exe"
+    if ext in (".doc", ".docx"):
+        return "word"
+    if ext == ".pdf":
+        return "pdf"
+    return None
 
-    Returns True when valid, False otherwise.
+
+def collect_files_from_directory(
+    directory: Path,
+    max_per_type: int,
+) -> Tuple[List[Tuple[str, Path]], Dict[str, int]]:
     """
-    # Validate that a file exists and has one of the allowed extensions.
-    if not file_path.exists() or not file_path.is_file():
-        logging.error("Input file does not exist: %s", file_path)
-        return False
-    if file_path.suffix.lower() not in allowed_suffixes:
-        logging.error(
-            "Invalid extension for %s. Allowed: %s",
-            file_path,
-            ", ".join(allowed_suffixes),
-        )
-        return False
-    return True
+    Scan a single directory (non-recursive) and collect supported files.
+
+    Each category is sorted by path name, then truncated to max_per_type.
+    Returns (ordered list of (type_label, path), counts per type after limiting).
+    """
+    if not directory.exists():
+        logging.error("Directory does not exist: %s", directory)
+        return [], {}
+
+    if not directory.is_dir():
+        logging.error("Not a directory: %s", directory)
+        return [], {}
+
+    buckets: Dict[str, List[Path]] = {"exe": [], "word": [], "pdf": []}
+
+    for entry in directory.iterdir():
+        label = _classify_file(entry)
+        if label is not None:
+            buckets[label].append(entry)
+
+    for label in buckets:
+        buckets[label].sort(key=lambda p: p.name.lower())
+
+    files: List[Tuple[str, Path]] = []
+    counts: Dict[str, int] = {}
+
+    for label in ("exe", "word", "pdf"):
+        all_for_type = buckets[label]
+        if len(all_for_type) > max_per_type:
+            logging.warning(
+                "Found %d %s file(s); analyzing first %d (--max-per-type)",
+                len(all_for_type),
+                label,
+                max_per_type,
+            )
+        selected = all_for_type[:max_per_type]
+        counts[label] = len(selected)
+        for path in selected:
+            files.append((label, path))
+
+    logging.info(
+        "Discovered in %s: %d exe, %d word, %d pdf (max %d per type)",
+        directory,
+        counts.get("exe", 0),
+        counts.get("word", 0),
+        counts.get("pdf", 0),
+        max_per_type,
+    )
+
+    return files, counts
 
 
 def main() -> int:
     """
-    Program entry workflow for analysis and report generation.
-
-    Returns process exit codes:
-    - 0: all reports generated
-    - 1: invalid input/config detected before submission
-    - 2: partial or total processing failure
+    Exit codes:
+    0 — every discovered file produced a saved report
+    1 — bad config, missing directory, or no supported files
+    2 — one or more files failed (partial success)
     """
-    # Run the analysis for the three input files and persist the reports.
     args = parse_args()
-
-    # Critical early guard to avoid confusing downstream auth failures.
     validate_required_config()
 
-    # Process all three required file categories in a fixed order.
-    # Each tuple: (label, path, allowed_extensions).
-    files = [
-        ("exe", Path(args.exe), (".exe",)),
-        ("word", Path(args.word), (".doc", ".docx")),
-        ("pdf", Path(args.pdf), (".pdf",)),
-    ]
+    files_dir = Path(args.files_dir)
+    max_per_type = max(0, args.max_per_type)
 
-    # Validate local input first, then start network calls.
-    if not all(validate_input_file(path, suffixes) for _, path, suffixes in files):
+    if max_per_type == 0:
+        logging.error("--max-per-type must be at least 1")
         return 1
 
-    """
-    Main workflow:
-    1) submit file for analysis
-    2) receive report JSON (direct or polled)
-    3) save JSON into `.txt`
-    Continue processing remaining files even when one fails.
-    """
+    files, _counts = collect_files_from_directory(files_dir, max_per_type)
+
+    if not files:
+        logging.error(
+            "No .exe, .doc/.docx, or .pdf files found under %s",
+            files_dir.resolve(),
+        )
+        return 1
+
     client = IntelixClient()
     reporter = ReportManager(output_dir=args.output_dir)
     success_count = 0
+    total = len(files)
 
-    # Process each required file category independently.
-    for label, file_path, _ in files:
-        logging.info("Starting analysis (%s): %s", label, file_path)
+    # Avoid overwriting reports when two files share the same stem (e.g. two PDFs named report.pdf in different runs — rare in one folder).
+    stem_serial: defaultdict[str, int] = defaultdict(int)
+
+    for file_type, file_path in files:
+        logging.info("Starting analysis (%s): %s", file_type, file_path)
         result = client.analyze_file(file_path)
 
         if result is None:
-            logging.error("Analysis failed (%s): %s", label, file_path.name)
+            logging.error("Analysis failed (%s): %s", file_type, file_path.name)
             continue
 
-        output_name = f"{label}_{file_path.stem}"
-        report_file = reporter.save(output_name, result)
-        if report_file is None:
-            logging.error("Report save failed (%s): %s", label, file_path.name)
+        base_name = f"{file_type}_{file_path.stem}"
+        stem_serial[base_name] += 1
+        serial = stem_serial[base_name]
+        output_name = base_name if serial == 1 else f"{base_name}_{serial}"
+
+        report_path = reporter.save(output_name, result)
+        if report_path is None:
+            logging.error("Report save failed (%s): %s", file_type, file_path.name)
             continue
+
         success_count += 1
-        logging.info("Completed (%s): %s", label, report_file)
+        logging.info("Completed (%s): %s", file_type, report_path)
 
-    # Return success only when all three reports are produced.
-    logging.info("Finished. %d/%d report(s) saved.", success_count, len(files))
-    return 0 if success_count == len(files) else 2
+    logging.info("Finished. %d/%d report(s) saved.", success_count, total)
+    return 0 if success_count == total else 2
 
 
 if __name__ == "__main__":
-    """
-    Execute CLI entrypoint and convert exceptions to a consistent exit code.
-    """
     try:
         sys.exit(main())
     except Exception:
-        # Fallback guard for unexpected runtime exceptions.
         logging.exception("Fatal error")
         sys.exit(99)

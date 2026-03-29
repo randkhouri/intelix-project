@@ -1,126 +1,130 @@
-# Intelix Project
+# SophosLabs Intelix — static file analysis client
 
-## Overview
-Intelix is an intelligent API client application that provides streamlined interaction with various APIs. It includes built-in authentication, request handling, response analysis, and comprehensive reporting capabilities.
+Python client that uploads files from a local folder to **SophosLabs Intelix** static analysis, saves each JSON report as a **`.txt`** file, and logs progress to **stdout**.
 
-## Features
-- **Secure Authentication**: Support for multiple authentication methods
-- **HTTP Request Handling**: Simplified API interaction and request management
-- **Response Analysis**: Intelligent parsing and analysis of API responses
-- **Reporting**: Generate detailed reports of API interactions and results
-- **Configuration Management**: Environment-based configuration system
-- **Error Handling**: Robust error handling and logging
+## Historical vs current behavior
 
-## Project Structure
+| Earlier design | Current design |
+|----------------|----------------|
+| Required exactly **one** `--exe`, **one** `--word`, and **one** `--pdf` | Scans a directory (default **`files/`**) for **all** matching files |
+| Fixed count of three inputs | Any mix of counts (e.g. 5 PDFs, 1 EXE, 0 Word), up to a **per-type limit** |
+
+Supported extensions (non-recursive scan of the chosen folder only):
+
+- **EXE:** `.exe`
+- **Word:** `.doc`, `.docx`
+- **PDF:** `.pdf`
+
+**Limits:** By default, at most **20** files per category are analyzed (`exe`, `word`, `pdf`). If more files exist, the first 20 per category (sorted by filename) are used and a warning is logged. Override with `--max-per-type`.
+
+## Architecture
+
 ```
-intelix-project/
-├── src/
-│   ├── auth.py        # Authentication module for API credentials
-│   ├── client.py      # Main HTTP client for API requests
-│   ├── config.py      # Configuration management
-│   ├── main.py        # Main application entry point
-│   └── reporter.py    # Reporting and analysis module
-├── samples/           # Example usage and sample data
-├── requirements.txt   # Python dependencies
-├── .gitignore        # Git ignore file
-└── README.md         # This file
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│  main.py    │────▶│  AuthClient  │────▶│ Intelix OAuth   │
+│  (CLI +     │     │  (auth.py)   │     │ /oauth2/token   │
+│   discovery)│     └──────────────┘     └─────────────────┘
+└──────┬──────┘
+       │
+       ▼
+┌──────────────┐     ┌──────────────────────────────┐
+│ IntelixClient│────▶│ Regional static analysis API │
+│ (client.py)  │     │ POST file → 200 or 202+poll  │
+└──────┬───────┘     └──────────────────────────────┘
+       │
+       ▼
+┌──────────────┐
+│ ReportManager│──▶ reports/<type>_<stem>.txt (JSON, pretty-printed)
+│ (reporter.py)│
+└──────────────┘
 ```
 
-## Module Descriptions
+- **`config.py`** — Loads `.env` (credentials, base URL, region, timeouts, polling).
+- **`auth.py`** — OAuth2 client credentials, token cache with expiry, retries on transient failures.
+- **`client.py`** — Builds regional URL, multipart upload, handles `200` vs `202` + poll `/reports/{jobId}`.
+- **`reporter.py`** — Writes UTF-8 `.txt` files containing JSON.
+- **`main.py`** — Discovers files under `files/` (or `--files-dir`), enforces caps, orchestrates the pipeline.
 
-### auth.py
-Handles authentication for API requests. Supports various authentication mechanisms including API keys, OAuth tokens, and basic authentication.
+## Prerequisites
 
-### client.py
-Core HTTP client module that manages API requests and responses. Provides methods for GET, POST, PUT, DELETE operations with automatic error handling.
-
-### config.py
-Configuration management system that loads settings from environment variables (.env file) and provides a centralized configuration object for the application.
-
-### main.py
-Application entry point that orchestrates the different modules. Manages the workflow of authentication, making requests, analyzing responses, and generating reports.
-
-### reporter.py
-Generates comprehensive reports of API interactions. Provides analysis of response times, status codes, and other relevant metrics.
-
-## Dependencies
-- `requests` - HTTP library for making API calls
-- `python-dotenv` - Load environment variables from .env file
-
-Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+- Python 3.10+ recommended (tested with 3.14 in development).
+- SophosLabs Intelix credentials (AWS Marketplace / onboarding).
+- Network access to `*.api.labs.sophos.com`.
 
 ## Setup
 
-### 1. Clone the Repository
 ```bash
 git clone https://github.com/randkhouri/intelix-project.git
 cd intelix-project
-```
-
-### 2. Install Dependencies
-```bash
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment
-Create a `.env` file in the project root:
-```
-API_KEY=your_api_key_here
-API_BASE_URL=https://api.example.com
-TIMEOUT=30
-```
+### Environment variables
 
-### 4. Run the Application
+Create a **`.env`** in the project root (never commit it):
+
+| Variable | Purpose |
+|----------|---------|
+| `INTELIX_CLIENT_ID` | OAuth client ID |
+| `INTELIX_CLIENT_SECRET` | OAuth client secret |
+| `INTELIX_BASE_URL` | Optional; default `https://api.labs.sophos.com` |
+| `INTELIX_REGION` | Optional; default `us` (e.g. `de`) |
+| `INTELIX_STATIC_ANALYSIS_PATH` | Optional; default `/analysis/file/static/v1` |
+| `INTELIX_TIMEOUT_SECONDS` | Optional HTTP timeout |
+| `INTELIX_MAX_POLL_ATTEMPTS` / `INTELIX_POLL_INTERVAL_SECONDS` | Optional async poll tuning |
+
+## Usage
+
+1. Place any number of supported files under the **`files/`** directory (or another path you pass in).
+
+2. Run from the project root:
+
 ```bash
 python src/main.py
 ```
 
-## Usage Examples
+This uses **`files/`** by default and **`reports/`** for output.
 
-### Basic Usage
-```python
-from src.client import APIClient
-from src.auth import Authentication
-from src.config import Config
+### Common options
 
-# Load configuration
-config = Config()
+```bash
+# Custom input folder
+python src/main.py --files-dir /path/to/my/documents
 
-# Initialize authentication
-auth = Authentication(config.api_key)
+# Custom output folder
+python src/main.py --output-dir ./out
 
-# Create client
-client = APIClient(auth, config.base_url)
-
-# Make a request
-response = client.get('/endpoint')
-print(response.json())
+# Allow up to 10 files per category (exe / word / pdf)
+python src/main.py --max-per-type 10
 ```
 
-### Generate Reports
-```python
-from src.reporter import Reporter
+### Capture stdout (e.g. for assignment logs)
 
-reporter = Reporter()
-report = reporter.generate_report(responses)
-print(report)
+```bash
+python src/main.py 2>&1 | tee logs/run.txt
 ```
 
-## Configuration
+## Exit codes
 
-The application uses a `.env` file for configuration. Required variables:
-- `API_KEY` - Your API authentication key
-- `API_BASE_URL` - Base URL for the API
-- `TIMEOUT` - Request timeout in seconds (optional, default: 30)
+| Code | Meaning |
+|------|---------|
+| `0` | Every discovered file produced a saved report |
+| `1` | Configuration/directory error or no supported files found |
+| `2` | Partial failure (some files failed) |
+| `99` | Unexpected fatal exception |
 
-## Contributing
-Contributions are welcome! Please follow these guidelines:
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request with a clear description of changes
+## Security notes
 
-## License
-This project is provided as-is for educational purposes.
+- Do **not** commit `.env` or real credentials.
+- Do not submit confidential files to Intelix; use only non-sensitive test files.
+
+## Dependencies
+
+- `requests` — HTTP client
+- `python-dotenv` — Load `.env`
+
+## License / use
+
+Provided as-is for educational and integration demonstration purposes.
