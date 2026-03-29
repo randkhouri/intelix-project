@@ -158,7 +158,11 @@ def main() -> int:
     log_name = args.log_file or datetime.now().strftime("intelix_%Y%m%d_%H%M%S.log")
     configure_logging(log_dir / log_name)
 
-    validate_required_config()
+    try:
+        validate_required_config()
+    except ValueError as exc:
+        logging.error("%s", exc)
+        return 1
 
     files_dir = Path(args.files_dir)
     max_per_type = max(0, args.max_per_type)
