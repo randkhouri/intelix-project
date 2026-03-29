@@ -1,14 +1,12 @@
 # SophosLabs Intelix — static file analysis client
 
-**Repository:** [github.com/randkhouri/intelix-project](https://github.com/randkhouri/intelix-project)
-
 Python tool that scans a local **`files/`** folder, uploads each supported file to **SophosLabs Intelix** static analysis, saves every JSON response as a **`.txt`** report, and writes the same **INFO/ERROR** log lines to **stdout** and to a **timestamped file** under **`logs/`**.
 
 ---
 
-## What it does (current behavior)
+## Workflow
 
-1. **Configure logging** — Creates `logs/intelix_YYYYMMDD_HHMMSS.log` (unless you set `--log-file`) and mirrors all messages to the terminal.
+1. **Logging** — Creates `logs/intelix_YYYYMMDD_HHMMSS.log` (unless you set `--log-file`) and mirrors all messages to the terminal.
 2. **Validate** — Checks `.env` for `INTELIX_CLIENT_ID` and `INTELIX_CLIENT_SECRET`.
 3. **Scan** — Reads the chosen directory (default **`files/`**, not subfolders) for regular files.
 4. **Classify**
@@ -16,35 +14,26 @@ Python tool that scans a local **`files/`** folder, uploads each supported file 
    - **Unsupported** (e.g. `.txt`, `.png`): **skipped** and an **`ERROR`** line is logged (terminal + log file).
    - **Subdirectories:** ignored (no error).
 5. **Analyze** — For each queued file: OAuth token → POST file to Intelix → handle immediate `200` or async `202` + poll until the report JSON is ready.
-6. **Save** — Writes `reports/<type>_<filename_stem>.txt` (pretty JSON). If two files would share the same name, a numeric suffix is added (`_2`, `_3`, …).
-
-### Historical note
-
-| Old design | Now |
-|------------|-----|
-| Exactly one `--exe`, one `--word`, one `--pdf` | Any mix of supported files in a folder |
-| Three CLI paths | Default folder `files/` + optional `--files-dir` |
-
----
+6. **Save** — Writes `reports/<type>_<filename_stem>.txt` (pretty JSON). If two files would share the same name, a numeric suffix is added.
 
 ## Project layout
 
 ```
 intelix-project/
-├── files/              # Put inputs here (.exe, .doc, .docx, .pdf)
-├── logs/               # Auto-created; one .log per run by default (gitignored)
-├── reports/            # Intelix JSON saved as .txt (gitignored)
+├── files/              # Put sample files here (.exe, .doc/docx, .pdf)
+├── logs/               # One .log per run by default
+├── reports/            # Intelix JSON saved as .txt
 ├── src/
 │   ├── main.py         # CLI, folder scan, logging setup, orchestration
-│   ├── config.py       # Environment / .env settings
+│   ├── config.py       # Environment settings
 │   ├── auth.py         # OAuth2 token + cache + expiry + retries
 │   ├── client.py       # Static analysis API: upload + 200/202 + polling
 │   └── reporter.py     # Write report JSON to .txt files
-├── Dockerfile          # Container image (Python 3.12-slim, non-root user)
-├── docker-compose.yml  # Optional: env_file + volume mounts for files/reports/logs
+├── Dockerfile          # Container image 
+├── docker-compose.yml  # Volume mounts for files/reports/logs
 ├── .dockerignore       # Keeps build context small (excludes .env, venv, logs, …)
 ├── requirements.txt
-├── .env                # You create this locally (never commit)
+├── .env                # Local, never commit
 └── README.md
 ```
 
@@ -68,21 +57,22 @@ main.py
 
 ## Prerequisites
 
-- **Python 3.10+** (3.14 used in development), **or** [Docker](https://docs.docker.com/get-docker/) to run the prebuilt workflow below.
 - **Intelix** credentials (e.g. AWS Marketplace onboarding).
 - **Internet** reachability for `*.api.labs.sophos.com`.
+- **Either** [Docker](https://docs.docker.com/get-docker/) **or** **Python 3.10+** (3.14 used in development for local runs).
 
 ## Setup
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/randkhouri/intelix-project.git
 cd intelix-project
-python -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
-### `.env` (project root)
+### 2. Create `.env` at the project root
+
+Use the same file for **local Python** and **Docker** (`--env-file` / Compose `env_file`). Do not commit it.
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
@@ -94,6 +84,25 @@ pip install -r requirements.txt
 | `INTELIX_TIMEOUT_SECONDS` | No | HTTP timeout (seconds) |
 | `INTELIX_MAX_POLL_ATTEMPTS` | No | Max polls when job returns `202` |
 | `INTELIX_POLL_INTERVAL_SECONDS` | No | Seconds between polls |
+
+### 3. Run the client (pick one)
+
+**Docker** — no Python virtualenv on your machine; outputs stay on the host via volume mounts:
+
+```bash
+docker compose up --build
+```
+
+Put samples under `files/` before running. Reports and logs appear in `./reports` and `./logs`. For `docker build` / `docker run`, extra CLI flags, and editing Compose `command`, see [Docker](#docker).
+
+**Local Python**
+
+```bash
+python -m venv venv
+source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python src/main.py
+```
 
 ---
 
@@ -132,7 +141,9 @@ python src/main.py 2>&1 | tee logs/tee_copy.txt
 
 ## Docker
 
-The image runs as a non-root user, uses **Python 3.12**, and keeps the same defaults (`files/`, `reports/`, `logs/`). **Do not** bake secrets into the image; pass credentials at runtime with `--env-file` or Compose `env_file`.
+The image runs as a non-root user, uses **Python 3.12**, and keeps the same defaults (`files/`, `reports/`, `logs/`). **Do not** bake secrets into the image; pass credentials at runtime with `--env-file` or Compose `env_file` (as in [Setup](#setup)).
+
+Quickest path: `docker compose up --build` from the project root. The sections below cover manual `docker build` / `docker run` and Compose customization.
 
 ### Build
 
