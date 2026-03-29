@@ -1,55 +1,71 @@
 # SophosLabs Intelix — static file analysis client
 
-Python client that uploads files from a local folder to **SophosLabs Intelix** static analysis, saves each JSON report as a **`.txt`** file, and logs progress to **stdout**.
+Python tool that scans a local **`files/`** folder, uploads each supported file to **SophosLabs Intelix** static analysis, saves every JSON response as a **`.txt`** report, and writes the same **INFO/ERROR** log lines to **stdout** and to a **timestamped file** under **`logs/`**.
 
-## Historical vs current behavior
+---
 
-| Earlier design | Current design |
-|----------------|----------------|
-| Required exactly **one** `--exe`, **one** `--word`, and **one** `--pdf` | Scans a directory (default **`files/`**) for **all** matching files |
-| Fixed count of three inputs | Any mix of counts (e.g. 5 PDFs, 1 EXE, 0 Word), up to a **per-type limit** |
+## What it does (current behavior)
 
-Supported extensions (non-recursive scan of the chosen folder only):
+1. **Configure logging** — Creates `logs/intelix_YYYYMMDD_HHMMSS.log` (unless you set `--log-file`) and mirrors all messages to the terminal.
+2. **Validate** — Checks `.env` for `INTELIX_CLIENT_ID` and `INTELIX_CLIENT_SECRET`.
+3. **Scan** — Reads the chosen directory (default **`files/`**, not subfolders) for regular files.
+4. **Classify**
+   - **Supported:** `.exe`, `.doc`, `.docx`, `.pdf` → queued for analysis (up to **20 per type** by default).
+   - **Unsupported** (e.g. `.txt`, `.png`): **skipped** and an **`ERROR`** line is logged (terminal + log file).
+   - **Subdirectories:** ignored (no error).
+5. **Analyze** — For each queued file: OAuth token → POST file to Intelix → handle immediate `200` or async `202` + poll until the report JSON is ready.
+6. **Save** — Writes `reports/<type>_<filename_stem>.txt` (pretty JSON). If two files would share the same name, a numeric suffix is added (`_2`, `_3`, …).
 
-- **EXE:** `.exe`
-- **Word:** `.doc`, `.docx`
-- **PDF:** `.pdf`
+### Historical note
 
-**Limits:** By default, at most **20** files per category are analyzed (`exe`, `word`, `pdf`). If more files exist, the first 20 per category (sorted by filename) are used and a warning is logged. Override with `--max-per-type`.
+| Old design | Now |
+|------------|-----|
+| Exactly one `--exe`, one `--word`, one `--pdf` | Any mix of supported files in a folder |
+| Three CLI paths | Default folder `files/` + optional `--files-dir` |
 
-## Architecture
+---
+
+## Project layout
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  main.py    │────▶│  AuthClient  │────▶│ Intelix OAuth   │
-│  (CLI +     │     │  (auth.py)   │     │ /oauth2/token   │
-│   discovery)│     └──────────────┘     └─────────────────┘
-└──────┬──────┘
-       │
-       ▼
-┌──────────────┐     ┌──────────────────────────────┐
-│ IntelixClient│────▶│ Regional static analysis API │
-│ (client.py)  │     │ POST file → 200 or 202+poll  │
-└──────┬───────┘     └──────────────────────────────┘
-       │
-       ▼
-┌──────────────┐
-│ ReportManager│──▶ reports/<type>_<stem>.txt (JSON, pretty-printed)
-│ (reporter.py)│
-└──────────────┘
+intelix-project/
+├── files/              # Put inputs here (.exe, .doc, .docx, .pdf)
+├── logs/               # Auto-created; one .log per run by default (gitignored)
+├── reports/            # Intelix JSON saved as .txt (gitignored)
+├── src/
+│   ├── main.py         # CLI, folder scan, logging setup, orchestration
+│   ├── config.py       # Environment / .env settings
+│   ├── auth.py         # OAuth2 token + cache + expiry + retries
+│   ├── client.py       # Static analysis API: upload + 200/202 + polling
+│   └── reporter.py     # Write report JSON to .txt files
+├── requirements.txt
+├── .env                # You create this locally (never commit)
+└── README.md
 ```
 
-- **`config.py`** — Loads `.env` (credentials, base URL, region, timeouts, polling).
-- **`auth.py`** — OAuth2 client credentials, token cache with expiry, retries on transient failures.
-- **`client.py`** — Builds regional URL, multipart upload, handles `200` vs `202` + poll `/reports/{jobId}`.
-- **`reporter.py`** — Writes UTF-8 `.txt` files containing JSON.
-- **`main.py`** — Discovers files under `files/` (or `--files-dir`), enforces caps, orchestrates the pipeline.
+---
+
+## Architecture (data flow)
+
+```
+main.py
+  ├─ configure_logging()     → stdout + logs/*.log
+  ├─ collect_files_from_directory()
+  │    ├─ supported files    → buckets (exe / word / pdf), cap per type
+  │    └─ other files        → logging.error("Unsupported file (skipped): …")
+  ├─ IntelixClient (client.py)
+  │    ├─ AuthClient (auth.py) → POST /oauth2/token
+  │    └─ POST static analysis → 200 JSON or 202 + GET …/reports/{jobId}
+  └─ ReportManager (reporter.py) → reports/*.txt
+```
+
+---
 
 ## Prerequisites
 
-- Python 3.10+ recommended (tested with 3.14 in development).
-- SophosLabs Intelix credentials (AWS Marketplace / onboarding).
-- Network access to `*.api.labs.sophos.com`.
+- **Python 3.10+** (3.14 used in development).
+- **Intelix** credentials (e.g. AWS Marketplace onboarding).
+- **Internet** reachability for `*.api.labs.sophos.com`.
 
 ## Setup
 
@@ -57,73 +73,78 @@ Supported extensions (non-recursive scan of the chosen folder only):
 git clone https://github.com/randkhouri/intelix-project.git
 cd intelix-project
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Environment variables
+### `.env` (project root)
 
-Create a **`.env`** in the project root (never commit it):
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `INTELIX_CLIENT_ID` | Yes | OAuth client ID |
+| `INTELIX_CLIENT_SECRET` | Yes | OAuth client secret |
+| `INTELIX_BASE_URL` | No | Default `https://api.labs.sophos.com` |
+| `INTELIX_REGION` | No | Default `us` (e.g. `de`) |
+| `INTELIX_STATIC_ANALYSIS_PATH` | No | Default `/analysis/file/static/v1` |
+| `INTELIX_TIMEOUT_SECONDS` | No | HTTP timeout (seconds) |
+| `INTELIX_MAX_POLL_ATTEMPTS` | No | Max polls when job returns `202` |
+| `INTELIX_POLL_INTERVAL_SECONDS` | No | Seconds between polls |
 
-| Variable | Purpose |
-|----------|---------|
-| `INTELIX_CLIENT_ID` | OAuth client ID |
-| `INTELIX_CLIENT_SECRET` | OAuth client secret |
-| `INTELIX_BASE_URL` | Optional; default `https://api.labs.sophos.com` |
-| `INTELIX_REGION` | Optional; default `us` (e.g. `de`) |
-| `INTELIX_STATIC_ANALYSIS_PATH` | Optional; default `/analysis/file/static/v1` |
-| `INTELIX_TIMEOUT_SECONDS` | Optional HTTP timeout |
-| `INTELIX_MAX_POLL_ATTEMPTS` / `INTELIX_POLL_INTERVAL_SECONDS` | Optional async poll tuning |
+---
 
 ## Usage
 
-1. Place any number of supported files under the **`files/`** directory (or another path you pass in).
-
-2. Run from the project root:
-
 ```bash
+# From project root: scan ./files, write ./reports, log to ./logs/intelix_<timestamp>.log
 python src/main.py
 ```
 
-This uses **`files/`** by default and **`reports/`** for output.
+### CLI options
 
-### Common options
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--files-dir` | `files` | Folder to scan (files only; not recursive) |
+| `--output-dir` | `reports` | Where report `.txt` files are written |
+| `--max-per-type` | `20` | Max files analyzed per category: exe, word, pdf |
+| `--log-dir` | `logs` | Directory for log files |
+| `--log-file` | *(timestamp)* | Log filename inside `--log-dir`; if omitted, `intelix_YYYYMMDD_HHMMSS.log` |
+
+Examples:
 
 ```bash
-# Custom input folder
-python src/main.py --files-dir /path/to/my/documents
-
-# Custom output folder
-python src/main.py --output-dir ./out
-
-# Allow up to 10 files per category (exe / word / pdf)
+python src/main.py --files-dir ~/Desktop/inbox --output-dir ./out
 python src/main.py --max-per-type 10
+python src/main.py --log-dir logs --log-file assignment.log
 ```
 
-### Capture stdout (e.g. for assignment logs)
+Optional extra copy of terminal output:
 
 ```bash
-python src/main.py 2>&1 | tee logs/run.txt
+python src/main.py 2>&1 | tee logs/tee_copy.txt
 ```
+
+---
 
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | Every discovered file produced a saved report |
-| `1` | Configuration/directory error or no supported files found |
-| `2` | Partial failure (some files failed) |
-| `99` | Unexpected fatal exception |
+| `0` | Every **supported** file discovered was analyzed and its report saved |
+| `1` | Bad/missing config, bad path, `--max-per-type` invalid, or **no** supported files in the folder |
+| `2` | At least one supported file failed analysis or report save |
+| `99` | Uncaught exception at top level |
 
-## Security notes
+---
 
-- Do **not** commit `.env` or real credentials.
-- Do not submit confidential files to Intelix; use only non-sensitive test files.
+## Security
+
+- Never commit **`.env`** or real credentials.
+- Only submit **non-confidential** test files to Intelix.
 
 ## Dependencies
 
-- `requests` — HTTP client
-- `python-dotenv` — Load `.env`
+- **requests** — HTTP
+- **python-dotenv** — load `.env`
 
 ## License / use
 

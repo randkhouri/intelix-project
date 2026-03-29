@@ -35,7 +35,6 @@ class IntelixClient:
     - Handle immediate and asynchronous responses.
     - Poll report endpoint until final result is ready.
     """
-    # Client wrapper around the Intelix static analysis REST API.
     def __init__(self):
         """
         Prepare reusable API state:
@@ -57,7 +56,6 @@ class IntelixClient:
         - input:  https://api.labs.sophos.com, region=us
         - output: https://us.api.labs.sophos.com
         """
-        # Convert the configured base URL into a region-specific host.
         if "://" not in base_url:
             return f"https://{region}.{base_url}"
         scheme, host = base_url.split("://", 1)
@@ -71,34 +69,27 @@ class IntelixClient:
 
         Returns final report JSON as dict when successful, otherwise None.
         """
-        # Submit a file for Intelix static analysis and return the JSON report payload.
         token = self.auth.get_access_token()
 
-        # Important: Intelix expects token directly (not "Bearer <token>").
+        # Intelix uses the raw access token in Authorization (not "Bearer …").
         headers = {
             "Authorization": token
         }
 
-        # High-level activity log for tracking progress per file.
         logging.info("Submitting file: %s", file_path.name)
 
         try:
-            # Submit file as multipart/form-data under field name `file`,
-            # then delegate response handling to the status dispatcher.
             with open(file_path, "rb") as f:
                 files = {"file": (file_path.name, f)}
-                # POST submission to static analysis endpoint.
                 response = requests.post(
                     self.static_analysis_url,
                     headers=headers,
                     files=files,
                     timeout=INTELIX_TIMEOUT_SECONDS,
                 )
-            # Delegate status-specific logic (200 immediate vs 202 job).
             return self._handle_analysis_response(file_path.name, response, headers)
 
         except Exception:
-            # Continue other files even if one submission fails.
             logging.exception("Failed processing file: %s", file_path.name)
             return None
 
@@ -115,13 +106,11 @@ class IntelixClient:
         - 202: job accepted; poll until report ready
         - other: treat as failure
         """
-        # Interpret the submit response (200 vs 202) and return final JSON when available.
         if response.status_code == 200:
             logging.info("Received report immediately for %s", file_name)
             return response.json()
 
         if response.status_code == 202:
-            # Async flow: API accepted the job, poll by returned jobId.
             body = response.json()
             job_id = body.get("jobId")
             if not job_id:
@@ -130,7 +119,6 @@ class IntelixClient:
             logging.info("Intelix accepted %s (jobId=%s). Polling...", file_name, job_id)
             return self._poll_report(job_id, headers)
 
-        # Any non-200/non-202 response is a failed submission.
         logging.error(
             "Intelix API error for %s: %s - %s",
             file_name,
@@ -147,27 +135,19 @@ class IntelixClient:
         - report is ready (HTTP 200),
         - an unrecoverable status is returned, or
         - max attempts are exhausted.
+
+        Polling contract per GET: 200 = done, 202 = wait and retry, anything else = fail.
         """
-        # Poll the job report endpoint until the final report JSON is ready.
         report_url = f"{self.static_analysis_url}/reports/{job_id}"
 
-        """
-        Polling contract:
-        - 202 -> still processing, wait and retry
-        - 200 -> report is ready
-        - other -> fail fast with logged error
-        """
         for attempt in range(1, INTELIX_MAX_POLL_ATTEMPTS + 1):
-            # GET job report status/result.
             response = requests.get(report_url, headers=headers, timeout=INTELIX_TIMEOUT_SECONDS)
 
             if response.status_code == 200:
-                # Final report payload received.
                 logging.info("Report ready for jobId=%s after %d poll(s)", job_id, attempt)
                 return response.json()
 
             if response.status_code != 202:
-                # Any non-202/non-200 response during polling is considered a failure.
                 logging.error(
                     "Polling failed for jobId=%s: %s - %s",
                     job_id,
@@ -176,7 +156,6 @@ class IntelixClient:
                 )
                 return None
 
-            # Job still running, sleep before next attempt.
             logging.info(
                 "Report not ready for jobId=%s (attempt %d/%d)",
                 job_id,
@@ -185,6 +164,5 @@ class IntelixClient:
             )
             time.sleep(INTELIX_POLL_INTERVAL_SECONDS)
 
-        # Stop after configured max attempts to avoid infinite loops.
         logging.error("Timed out waiting for report, jobId=%s", job_id)
         return None

@@ -1,18 +1,22 @@
 """
-Command-line entry point for the Intelix static analysis client.
+Intelix static analysis — CLI entry point.
 
-Responsibilities:
-- Read configuration from the environment (.env).
-- Discover .exe, .doc/.docx, and .pdf files under a configurable directory (default: ./files).
-- Respect a per-category cap (default: 20 files each for exe, word, pdf).
-- Submit each file to SophosLabs Intelix static analysis and save JSON reports as .txt.
-- Log activity and errors to standard output.
+Flow:
+1. Parse arguments (--files-dir, --output-dir, --max-per-type, --log-dir, --log-file).
+2. Configure the root logger: same messages go to stdout and to a UTF-8 log file under logs/.
+3. Validate required env vars via config.validate_required_config().
+4. Scan --files-dir (non-recursive): collect .exe / .doc / .docx / .pdf up to --max-per-type
+   per category; log ERROR for any other regular file in that folder (skipped).
+5. For each collected file: IntelixClient.analyze_file() then ReportManager.save() to .txt.
+
+See README.md for folder layout and full option list.
 """
 
 import argparse
 import logging
 import sys
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -21,19 +25,35 @@ from config import validate_required_config
 from reporter import ReportManager
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+def configure_logging(log_file_path: Path) -> None:
+    """
+    Attach two handlers to the root logger: StreamHandler (stdout) and FileHandler (UTF-8).
+
+    Clears previous root handlers so a second run in the same process does not duplicate lines.
+    """
+    log_file_path.parent.mkdir(parents=True, exist_ok=True)
+    log_format = "%(asctime)s [%(levelname)s] %(message)s"
+    formatter = logging.Formatter(log_format)
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    for existing in root.handlers[:]:
+        root.removeHandler(existing)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    root.addHandler(stream_handler)
+
+    file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    root.addHandler(file_handler)
+
+    # First line in the file confirms where logs are written.
+    logging.info("Log file: %s", log_file_path.resolve())
 
 
 def parse_args() -> argparse.Namespace:
-    """
-    Parse CLI arguments.
-
-    By default the program scans ./files. Override with --files-dir.
-    """
+    """Define and parse all command-line flags (see README.md)."""
     parser = argparse.ArgumentParser(
         description=(
             "Submit all .exe, .doc/.docx, and .pdf files from a directory "
@@ -56,11 +76,27 @@ def parse_args() -> argparse.Namespace:
         default=20,
         help="Max files to analyze per category: exe, word, pdf (default: 20)",
     )
+    parser.add_argument(
+        "--log-dir",
+        default="logs",
+        help="Directory for log files (default: logs)",
+    )
+    parser.add_argument(
+        "--log-file",
+        default=None,
+        help=(
+            "Log filename inside --log-dir (default: intelix_YYYYMMDD_HHMMSS.log)"
+        ),
+    )
     return parser.parse_args()
 
 
 def _classify_file(path: Path) -> str | None:
-    """Return bucket name exe | word | pdf, or None if not a supported type."""
+    """
+    Map a file path to bucket exe | word | pdf, or None if unsupported.
+
+    Returns None if the path is not a file or the extension is not allowed.
+    """
     if not path.is_file():
         return None
     ext = path.suffix.lower()
@@ -78,10 +114,15 @@ def collect_files_from_directory(
     max_per_type: int,
 ) -> Tuple[List[Tuple[str, Path]], Dict[str, int]]:
     """
-    Scan a single directory (non-recursive) and collect supported files.
+    List files in `directory` (top level only; no subfolders).
 
-    Each category is sorted by path name, then truncated to max_per_type.
-    Returns (ordered list of (type_label, path), counts per type after limiting).
+    - Regular files with allowed extensions go into exe / word / pdf buckets.
+    - Any other regular file: log ERROR and skip (not sent to Intelix).
+    - Each bucket is sorted by name, then capped at max_per_type (WARNING if truncated).
+
+    Returns:
+        (list of (type_label, path) in order exe, then word, then pdf),
+        dict of counts per type after capping.
     """
     if not directory.exists():
         logging.error("Directory does not exist: %s", directory)
@@ -94,9 +135,16 @@ def collect_files_from_directory(
     buckets: Dict[str, List[Path]] = {"exe": [], "word": [], "pdf": []}
 
     for entry in directory.iterdir():
+        if not entry.is_file():
+            continue
         label = _classify_file(entry)
         if label is not None:
             buckets[label].append(entry)
+        else:
+            logging.error(
+                "Unsupported file (skipped): %s — allowed extensions: .exe, .doc, .docx, .pdf",
+                entry.name,
+            )
 
     for label in buckets:
         buckets[label].sort(key=lambda p: p.name.lower())
@@ -132,12 +180,20 @@ def collect_files_from_directory(
 
 def main() -> int:
     """
+    Run one full scan + analysis pass.
+
     Exit codes:
-    0 — every discovered file produced a saved report
-    1 — bad config, missing directory, or no supported files
-    2 — one or more files failed (partial success)
+        0 — every queued supported file got a saved report
+        1 — invalid args/config/path, or zero supported files after scan
+        2 — one or more analyses or saves failed
     """
     args = parse_args()
+
+    # Logging must be configured before validate_required_config() so failures are captured.
+    log_dir = Path(args.log_dir)
+    log_name = args.log_file or datetime.now().strftime("intelix_%Y%m%d_%H%M%S.log")
+    configure_logging(log_dir / log_name)
+
     validate_required_config()
 
     files_dir = Path(args.files_dir)
@@ -161,7 +217,7 @@ def main() -> int:
     success_count = 0
     total = len(files)
 
-    # Avoid overwriting reports when two files share the same stem (e.g. two PDFs named report.pdf in different runs — rare in one folder).
+    # Same stem + type twice in one folder (e.g. copies) → pdf_foo.txt, pdf_foo_2.txt
     stem_serial: defaultdict[str, int] = defaultdict(int)
 
     for file_type, file_path in files:
@@ -193,5 +249,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except Exception:
+        # If logging was never configured (e.g. crash in parse_args), Python may use lastResort.
         logging.exception("Fatal error")
         sys.exit(99)

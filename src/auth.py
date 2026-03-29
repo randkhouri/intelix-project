@@ -32,7 +32,6 @@ class AuthClient:
     - Refresh token when expired.
     - Apply basic retry behavior for transient network issues.
     """
-    # Handles access token retrieval and caching
     def __init__(
         self,
         client_id: Optional[str] = None,
@@ -64,7 +63,6 @@ class AuthClient:
         Retries only cover transient conditions (e.g. 429/5xx) to improve
         resilience without hiding persistent failures.
         """
-        # Small retry strategy to handle transient network/server faults.
         retry = Retry(
             total=3,
             backoff_factor=0.5,
