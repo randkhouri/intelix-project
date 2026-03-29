@@ -40,6 +40,9 @@ intelix-project/
 │   ├── auth.py         # OAuth2 token + cache + expiry + retries
 │   ├── client.py       # Static analysis API: upload + 200/202 + polling
 │   └── reporter.py     # Write report JSON to .txt files
+├── Dockerfile          # Container image (Python 3.12-slim, non-root user)
+├── docker-compose.yml  # Optional: env_file + volume mounts for files/reports/logs
+├── .dockerignore       # Keeps build context small (excludes .env, venv, logs, …)
 ├── requirements.txt
 ├── .env                # You create this locally (never commit)
 └── README.md
@@ -65,7 +68,7 @@ main.py
 
 ## Prerequisites
 
-- **Python 3.10+** (3.14 used in development).
+- **Python 3.10+** (3.14 used in development), **or** [Docker](https://docs.docker.com/get-docker/) to run the prebuilt workflow below.
 - **Intelix** credentials (e.g. AWS Marketplace onboarding).
 - **Internet** reachability for `*.api.labs.sophos.com`.
 
@@ -127,6 +130,55 @@ python src/main.py 2>&1 | tee logs/tee_copy.txt
 
 ---
 
+## Docker
+
+The image runs as a non-root user, uses **Python 3.12**, and keeps the same defaults (`files/`, `reports/`, `logs/`). **Do not** bake secrets into the image; pass credentials at runtime with `--env-file` or Compose `env_file`.
+
+### Build
+
+```bash
+docker build -t intelix-client .
+```
+
+### Run (bind mounts)
+
+Mount host directories so inputs and outputs stay on your machine:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/files:/app/files" \
+  -v "$(pwd)/reports:/app/reports" \
+  -v "$(pwd)/logs:/app/logs" \
+  intelix-client
+```
+
+Extra CLI arguments are appended to `python src/main.py`:
+
+```bash
+docker run --rm --env-file .env \
+  -v "$(pwd)/files:/app/files" \
+  -v "$(pwd)/reports:/app/reports" \
+  -v "$(pwd)/logs:/app/logs" \
+  intelix-client --max-per-type 10
+```
+
+### Docker Compose
+
+From the project root (with `.env` present):
+
+```bash
+docker compose up --build
+```
+
+`docker-compose.yml` mounts `./files`, `./reports`, and `./logs` into the container. To pass flags, uncomment and edit `command` in that file, for example:
+
+```yaml
+command: ["--max-per-type", "10"]
+```
+
+---
+
 ## Exit codes
 
 | Code | Meaning |
@@ -135,19 +187,3 @@ python src/main.py 2>&1 | tee logs/tee_copy.txt
 | `1` | Bad/missing config, bad path, `--max-per-type` invalid, or **no** supported files in the folder |
 | `2` | At least one supported file failed analysis or report save |
 | `99` | Uncaught exception at top level |
-
----
-
-## Security
-
-- Never commit **`.env`** or real credentials.
-- Only submit **non-confidential** test files to Intelix.
-
-## Dependencies
-
-- **requests** — HTTP
-- **python-dotenv** — load `.env`
-
-## License / use
-
-Provided as-is for educational and integration demonstration purposes.

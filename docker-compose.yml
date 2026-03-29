@@ -1,0 +1,13 @@
+# Run: docker compose up --build
+# Requires a .env next to this file with INTELIX_CLIENT_ID and INTELIX_CLIENT_SECRET.
+services:
+  intelix:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./files:/app/files
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    # Example: pass CLI flags
+    # command: ["--max-per-type", "10", "--log-file", "compose.log"]

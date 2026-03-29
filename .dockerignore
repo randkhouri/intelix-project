@@ -1,0 +1,10 @@
+.git
+.github
+venv
+__pycache__
+*.pyc
+.env
+logs
+reports
+submission
+.DS_Store
