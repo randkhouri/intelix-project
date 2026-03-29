@@ -5,7 +5,5 @@ __pycache__/
 # macOS / editor noise
 .DS_Store
 
-# Generated outputs (keep locally; not needed in source repo)
-logs/
-reports/
+# Optional duplicate / zip staging (not part of the app)
 submission/

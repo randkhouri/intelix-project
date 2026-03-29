@@ -1,0 +1,41 @@
+{
+    "jobId": "4311768370df9f57073aa92228c29409",
+    "jobStatus": "SUCCESS",
+    "report": {
+        "analysis_subject": {
+            "mime_type": "text/plain",
+            "sha1": "0a715f238c444f2077bfb054a09680b014d52974",
+            "sha256": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c"
+        },
+        "analysis_type": "static",
+        "archive_analysis": {},
+        "container_analysis": {},
+        "detection": {
+            "permalink": "",
+            "positives": 0,
+            "sophos": "",
+            "sophos_ml": "",
+            "total": 0
+        },
+        "linked_with_dynamic_analysis": false,
+        "object_type": "file",
+        "reputation": {
+            "first_seen": "",
+            "last_seen": "",
+            "prevalence": "",
+            "score": 30,
+            "score_string": "Unknown reputation"
+        },
+        "schema_version": "1.2.16794176",
+        "score": 50,
+        "submission": "2026-03-25T18:48:48Z",
+        "target": {
+            "file_name": "my_test.exe",
+            "mime_type": "text/plain",
+            "object_id": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c",
+            "sha1": "0a715f238c444f2077bfb054a09680b014d52974",
+            "sha256": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c"
+        }
+    },
+    "requestId": "122b3331-c41f-4a14-926c-39188a0b1561"
+}

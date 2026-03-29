@@ -1,0 +1,44 @@
+2026-03-29 12:17:10,241 [INFO] Log file: /Users/randkhouri/Desktop/intelix-client/logs/intelix_20260329_121710.log
+2026-03-29 12:17:10,242 [INFO] Discovered in files: 1 exe, 3 word, 4 pdf (max 20 per type)
+2026-03-29 12:17:10,243 [INFO] Starting analysis (exe): files/my_test.exe
+2026-03-29 12:17:10,538 [INFO] Access token acquired
+2026-03-29 12:17:10,539 [INFO] Submitting file: my_test.exe
+2026-03-29 12:17:11,504 [INFO] Received report immediately for my_test.exe
+2026-03-29 12:17:11,508 [INFO] Saved report: reports/exe_my_test.txt
+2026-03-29 12:17:11,509 [INFO] Completed (exe): reports/exe_my_test.txt
+2026-03-29 12:17:11,509 [INFO] Starting analysis (word): files/my_test copy 2.docx
+2026-03-29 12:17:11,509 [INFO] Submitting file: my_test copy 2.docx
+2026-03-29 12:17:12,222 [INFO] Received report immediately for my_test copy 2.docx
+2026-03-29 12:17:12,230 [INFO] Saved report: reports/word_my_test copy 2.txt
+2026-03-29 12:17:12,230 [INFO] Completed (word): reports/word_my_test copy 2.txt
+2026-03-29 12:17:12,234 [INFO] Starting analysis (word): files/my_test copy.docx
+2026-03-29 12:17:12,235 [INFO] Submitting file: my_test copy.docx
+2026-03-29 12:17:12,836 [INFO] Received report immediately for my_test copy.docx
+2026-03-29 12:17:12,842 [INFO] Saved report: reports/word_my_test copy.txt
+2026-03-29 12:17:12,843 [INFO] Completed (word): reports/word_my_test copy.txt
+2026-03-29 12:17:12,843 [INFO] Starting analysis (word): files/my_test.docx
+2026-03-29 12:17:12,843 [INFO] Submitting file: my_test.docx
+2026-03-29 12:17:13,761 [INFO] Received report immediately for my_test.docx
+2026-03-29 12:17:13,768 [INFO] Saved report: reports/word_my_test.txt
+2026-03-29 12:17:13,768 [INFO] Completed (word): reports/word_my_test.txt
+2026-03-29 12:17:13,768 [INFO] Starting analysis (pdf): files/my_test copy 2.pdf
+2026-03-29 12:17:13,768 [INFO] Submitting file: my_test copy 2.pdf
+2026-03-29 12:17:14,274 [INFO] Received report immediately for my_test copy 2.pdf
+2026-03-29 12:17:14,280 [INFO] Saved report: reports/pdf_my_test copy 2.txt
+2026-03-29 12:17:14,280 [INFO] Completed (pdf): reports/pdf_my_test copy 2.txt
+2026-03-29 12:17:14,280 [INFO] Starting analysis (pdf): files/my_test copy 3.pdf
+2026-03-29 12:17:14,280 [INFO] Submitting file: my_test copy 3.pdf
+2026-03-29 12:17:14,744 [INFO] Received report immediately for my_test copy 3.pdf
+2026-03-29 12:17:14,749 [INFO] Saved report: reports/pdf_my_test copy 3.txt
+2026-03-29 12:17:14,749 [INFO] Completed (pdf): reports/pdf_my_test copy 3.txt
+2026-03-29 12:17:14,749 [INFO] Starting analysis (pdf): files/my_test copy.pdf
+2026-03-29 12:17:14,749 [INFO] Submitting file: my_test copy.pdf
+2026-03-29 12:17:15,193 [INFO] Received report immediately for my_test copy.pdf
+2026-03-29 12:17:15,200 [INFO] Saved report: reports/pdf_my_test copy.txt
+2026-03-29 12:17:15,200 [INFO] Completed (pdf): reports/pdf_my_test copy.txt
+2026-03-29 12:17:15,200 [INFO] Starting analysis (pdf): files/my_test.pdf
+2026-03-29 12:17:15,200 [INFO] Submitting file: my_test.pdf
+2026-03-29 12:17:16,227 [INFO] Received report immediately for my_test.pdf
+2026-03-29 12:17:16,235 [INFO] Saved report: reports/pdf_my_test.txt
+2026-03-29 12:17:16,235 [INFO] Completed (pdf): reports/pdf_my_test.txt
+2026-03-29 12:17:16,236 [INFO] Finished. 8/8 report(s) saved.
