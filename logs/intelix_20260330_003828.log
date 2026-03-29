@@ -1,0 +1,20 @@
+2026-03-30 00:38:28,634 [INFO] Log file: /Users/randkhouri/Desktop/intelix-client/logs/intelix_20260330_003828.log
+2026-03-30 00:38:28,635 [ERROR] Unsupported file (skipped): my_test.txt — allowed: .exe, .doc, .docx, .pdf
+2026-03-30 00:38:28,635 [INFO] Discovered in files: 1 exe, 1 word, 1 pdf (max 20 per type)
+2026-03-30 00:38:28,635 [INFO] Starting analysis (exe): files/my_test.exe
+2026-03-30 00:38:29,338 [INFO] Access token acquired
+2026-03-30 00:38:29,338 [INFO] Submitting file: my_test.exe
+2026-03-30 00:38:30,612 [INFO] Received report immediately for my_test.exe
+2026-03-30 00:38:30,619 [INFO] Saved report: reports/exe_my_test.txt
+2026-03-30 00:38:30,619 [INFO] Completed (exe): reports/exe_my_test.txt
+2026-03-30 00:38:30,619 [INFO] Starting analysis (word): files/my_test.docx
+2026-03-30 00:38:30,620 [INFO] Submitting file: my_test.docx
+2026-03-30 00:38:31,573 [INFO] Received report immediately for my_test.docx
+2026-03-30 00:38:31,579 [INFO] Saved report: reports/word_my_test.txt
+2026-03-30 00:38:31,579 [INFO] Completed (word): reports/word_my_test.txt
+2026-03-30 00:38:31,579 [INFO] Starting analysis (pdf): files/my_test.pdf
+2026-03-30 00:38:31,579 [INFO] Submitting file: my_test.pdf
+2026-03-30 00:38:32,210 [INFO] Received report immediately for my_test.pdf
+2026-03-30 00:38:32,218 [INFO] Saved report: reports/pdf_my_test.txt
+2026-03-30 00:38:32,219 [INFO] Completed (pdf): reports/pdf_my_test.txt
+2026-03-30 00:38:32,219 [INFO] Finished. 3/3 report(s) saved.
