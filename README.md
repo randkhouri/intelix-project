@@ -6,7 +6,7 @@ Python tool that scans a local **`files/`** folder, uploads each supported file 
 
 ---
 
-## Workflow
+## What it does (current behavior)
 
 1. **Configure logging** — Creates `logs/intelix_YYYYMMDD_HHMMSS.log` (unless you set `--log-file`) and mirrors all messages to the terminal.
 2. **Validate** — Checks `.env` for `INTELIX_CLIENT_ID` and `INTELIX_CLIENT_SECRET`.
@@ -18,6 +18,12 @@ Python tool that scans a local **`files/`** folder, uploads each supported file 
 5. **Analyze** — For each queued file: OAuth token → POST file to Intelix → handle immediate `200` or async `202` + poll until the report JSON is ready.
 6. **Save** — Writes `reports/<type>_<filename_stem>.txt` (pretty JSON). If two files would share the same name, a numeric suffix is added (`_2`, `_3`, …).
 
+### Historical note
+
+| Old design | Now |
+|------------|-----|
+| Exactly one `--exe`, one `--word`, one `--pdf` | Any mix of supported files in a folder |
+| Three CLI paths | Default folder `files/` + optional `--files-dir` |
 
 ---
 
@@ -35,8 +41,24 @@ intelix-project/
 │   ├── client.py       # Static analysis API: upload + 200/202 + polling
 │   └── reporter.py     # Write report JSON to .txt files
 ├── requirements.txt
-├── .env                # You create this locally
+├── .env                # You create this locally (never commit)
 └── README.md
+```
+
+---
+
+## Architecture (data flow)
+
+```
+main.py
+  ├─ configure_logging()     → stdout + logs/*.log
+  ├─ collect_files_from_directory()
+  │    ├─ supported files    → buckets (exe / word / pdf), cap per type
+  │    └─ other files        → logging.error("Unsupported file (skipped): …")
+  ├─ IntelixClient (client.py)
+  │    ├─ AuthClient (auth.py) → POST /oauth2/token
+  │    └─ POST static analysis → 200 JSON or 202 + GET …/reports/{jobId}
+  └─ ReportManager (reporter.py) → reports/*.txt
 ```
 
 ---
@@ -44,7 +66,8 @@ intelix-project/
 ## Prerequisites
 
 - **Python 3.10+** (3.14 used in development).
-- **Intelix** credentials (from AWS Marketplace).
+- **Intelix** credentials (e.g. AWS Marketplace onboarding).
+- **Internet** reachability for `*.api.labs.sophos.com`.
 
 ## Setup
 
@@ -95,3 +118,36 @@ python src/main.py --files-dir ~/Desktop/inbox --output-dir ./out
 python src/main.py --max-per-type 10
 python src/main.py --log-dir logs --log-file assignment.log
 ```
+
+Optional extra copy of terminal output:
+
+```bash
+python src/main.py 2>&1 | tee logs/tee_copy.txt
+```
+
+---
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Every **supported** file discovered was analyzed and its report saved |
+| `1` | Bad/missing config, bad path, `--max-per-type` invalid, or **no** supported files in the folder |
+| `2` | At least one supported file failed analysis or report save |
+| `99` | Uncaught exception at top level |
+
+---
+
+## Security
+
+- Never commit **`.env`** or real credentials.
+- Only submit **non-confidential** test files to Intelix.
+
+## Dependencies
+
+- **requests** — HTTP
+- **python-dotenv** — load `.env`
+
+## License / use
+
+Provided as-is for educational and integration demonstration purposes.
