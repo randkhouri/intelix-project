@@ -29,6 +29,10 @@ intelix-project/
 │   ├── auth.py         # OAuth2 token + cache + expiry + retries
 │   ├── client.py       # Static analysis API: upload + 200/202 + polling
 │   └── reporter.py     # Write report JSON to .txt files
+├── tests/
+│   ├── test_main.py    # Classification + folder collection/capping behavior
+│   ├── test_auth.py    # Token caching + auth error handling
+│   └── test_client.py  # URL building + 200/202/polling response flow
 ├── Dockerfile          # Container image 
 ├── docker-compose.yml  # Volume mounts for files/reports/logs
 ├── .dockerignore       # Keeps build context small (excludes .env, venv, logs, …)
@@ -106,6 +110,23 @@ python src/main.py
 
 ---
 
+## Testing
+
+Unit tests use `pytest` and cover the core non-network behavior:
+
+- File extension classification and unsupported-file handling
+- Per-type file capping and deterministic collection behavior
+- OAuth token caching and authentication failure paths
+- Intelix client 200/202 response handling and polling control flow
+
+Run tests from the project root:
+
+```bash
+python -m pytest -q
+```
+
+---
+
 ## Usage
 
 ```bash
@@ -142,8 +163,6 @@ python src/main.py 2>&1 | tee logs/tee_copy.txt
 ## Docker
 
 The image runs as a non-root user, uses **Python 3.12**, and keeps the same defaults (`files/`, `reports/`, `logs/`). **Do not** bake secrets into the image; pass credentials at runtime with `--env-file` or Compose `env_file` (as in [Setup](#setup)).
-
-Quickest path: `docker compose up --build` from the project root. The sections below cover manual `docker build` / `docker run` and Compose customization.
 
 ### Build
 
@@ -198,3 +217,10 @@ command: ["--max-per-type", "10"]
 | `1` | Bad/missing config, bad path, `--max-per-type` invalid, or **no** supported files in the folder |
 | `2` | At least one supported file failed analysis or report save |
 | `99` | Uncaught exception at top level |
+
+---
+
+## Sample input notes
+
+- `files/my_test.exe` is a real PE-format executable sample used for functional validation of the `.exe` path.
+- `files/my_test.txt` is intentionally unsupported and is included to demonstrate skip/error logging for unexpected extensions.

@@ -1,0 +1,24 @@
+2026-04-06 11:45:56,475 [INFO] Log file: /Users/randkhouri/Desktop/intelix-client/logs/intelix_20260406_114556.log
+2026-04-06 11:45:56,475 [ERROR] Unsupported file (skipped): my_test.txt — allowed: .exe, .doc, .docx, .pdf
+2026-04-06 11:45:56,475 [INFO] Discovered in /Users/randkhouri/Desktop/intelix-client/files: 1 exe, 1 word, 1 pdf (max 20 per type)
+2026-04-06 11:45:56,476 [INFO] Starting analysis (exe): /Users/randkhouri/Desktop/intelix-client/files/my_test.exe
+2026-04-06 11:45:57,524 [INFO] Access token acquired
+2026-04-06 11:45:57,525 [INFO] Submitting file: my_test.exe
+2026-04-06 11:45:58,538 [INFO] Intelix accepted my_test.exe (jobId=0ef87fe07c199900180de077a6f608b3). Polling...
+2026-04-06 11:45:59,113 [INFO] Report not ready for jobId=0ef87fe07c199900180de077a6f608b3 (attempt 1/120)
+2026-04-06 11:46:04,735 [INFO] Report not ready for jobId=0ef87fe07c199900180de077a6f608b3 (attempt 2/120)
+2026-04-06 11:46:10,378 [INFO] Report not ready for jobId=0ef87fe07c199900180de077a6f608b3 (attempt 3/120)
+2026-04-06 11:46:16,148 [INFO] Report ready for jobId=0ef87fe07c199900180de077a6f608b3 after 4 poll(s)
+2026-04-06 11:46:16,163 [INFO] Saved report: /Users/randkhouri/Desktop/intelix-client/reports/exe_my_test.txt
+2026-04-06 11:46:16,163 [INFO] Completed (exe): /Users/randkhouri/Desktop/intelix-client/reports/exe_my_test.txt
+2026-04-06 11:46:16,163 [INFO] Starting analysis (word): /Users/randkhouri/Desktop/intelix-client/files/my_test.docx
+2026-04-06 11:46:16,164 [INFO] Submitting file: my_test.docx
+2026-04-06 11:46:16,732 [INFO] Received report immediately for my_test.docx
+2026-04-06 11:46:16,740 [INFO] Saved report: /Users/randkhouri/Desktop/intelix-client/reports/word_my_test.txt
+2026-04-06 11:46:16,740 [INFO] Completed (word): /Users/randkhouri/Desktop/intelix-client/reports/word_my_test.txt
+2026-04-06 11:46:16,740 [INFO] Starting analysis (pdf): /Users/randkhouri/Desktop/intelix-client/files/my_test.pdf
+2026-04-06 11:46:16,741 [INFO] Submitting file: my_test.pdf
+2026-04-06 11:46:17,340 [INFO] Received report immediately for my_test.pdf
+2026-04-06 11:46:17,348 [INFO] Saved report: /Users/randkhouri/Desktop/intelix-client/reports/pdf_my_test.txt
+2026-04-06 11:46:17,348 [INFO] Completed (pdf): /Users/randkhouri/Desktop/intelix-client/reports/pdf_my_test.txt
+2026-04-06 11:46:17,348 [INFO] Finished. 3/3 report(s) saved.

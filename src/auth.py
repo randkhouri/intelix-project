@@ -23,7 +23,6 @@ from config import (
     INTELIX_TIMEOUT_SECONDS,
 )
 
-
 class AuthClient:
     """
     Handle OAuth token lifecycle for Intelix.

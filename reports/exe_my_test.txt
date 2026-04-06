@@ -1,12 +1,49 @@
 {
-    "jobId": "4311768370df9f57073aa92228c29409",
+    "jobId": "0ef87fe07c199900180de077a6f608b3",
     "jobStatus": "SUCCESS",
     "report": {
         "analysis_subject": {
-            "mime_type": "text/plain",
-            "sha1": "0a715f238c444f2077bfb054a09680b014d52974",
-            "sha256": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c"
+            "mime_type": "application/x-dosexec",
+            "sha1": "4ea7bc212501974366f7260eb1aa432f6141796c",
+            "sha256": "aaf13fcc2d3d79c5dc28df2cf2f6e8d97670c07f540da2527cab69c4bd44d003"
         },
+        "analysis_summary": [
+            {
+                "description": "Executable is 32bit",
+                "name": "edr_executable_32_bit",
+                "severity": 1
+            },
+            {
+                "description": "Executable does not contain version information",
+                "name": "edr_executable_missing_version_info",
+                "severity": 1
+            },
+            {
+                "description": "Executable does not contain a Data section",
+                "name": "edr_executable_no_data_section",
+                "severity": 1
+            },
+            {
+                "description": "Executable exports no APIs (not a DLL)",
+                "name": "edr_executable_no_exports",
+                "severity": 1
+            },
+            {
+                "description": "Executable declares no language ID",
+                "name": "edr_executable_no_language_id",
+                "severity": 1
+            },
+            {
+                "description": "Executable contains common section names",
+                "name": "edr_executable_recognised_section_names",
+                "severity": 1
+            },
+            {
+                "description": "Executable is a console application",
+                "name": "edr_executable_windows_console",
+                "severity": 1
+            }
+        ],
         "analysis_type": "static",
         "archive_analysis": {},
         "container_analysis": {},
@@ -17,8 +54,489 @@
             "sophos_ml": "",
             "total": 0
         },
+        "feature_analysis": {
+            "strings": {
+                "unrecognized": {
+                    "display_name": "Unrecognized Strings",
+                    "values": {}
+                }
+            }
+        },
         "linked_with_dynamic_analysis": false,
+        "ml_aggregate_results": {
+            "overall_score": 28
+        },
+        "ml_file": {
+            "analyses": {
+                "black_box": {
+                    "benign": {
+                        "raw": 0.9804352521896362,
+                        "score": 28
+                    },
+                    "model_name": "dsml_model_pe",
+                    "model_version": "20240318",
+                    "pua": {
+                        "raw": 0.16399875283241272,
+                        "score": 12
+                    }
+                },
+                "feature_intersections": [
+                    {
+                        "benign": 7309410,
+                        "benign_fraction": 0.7309410931010052,
+                        "category": "Imports",
+                        "description": "Feature NOT Observed: [!] The program may be hiding some of its imports: \"LoadLibraryA\"",
+                        "indicator": "Feature NOT Observed: Imports -> [!] The program may be hiding some of its imports -> \"LoadLibraryA\"",
+                        "malware": 3714690,
+                        "malware_fraction": 0.37146908419781444,
+                        "probability": 0.3369608625239714,
+                        "scale_factor": 10000000
+                    },
+                    {
+                        "benign": 4889525,
+                        "benign_fraction": 0.4889525332567797,
+                        "category": "Packer",
+                        "description": "Feature NOT Observed: Packer: \"Section .rsrc is both writable and executable.\"",
+                        "indicator": "Feature NOT Observed: Packer -> \"Section .rsrc is both writable and executable.\"",
+                        "malware": 787484,
+                        "malware_fraction": 0.07874849951901339,
+                        "probability": 0.13871473711078167,
+                        "scale_factor": 10000000
+                    },
+                    {
+                        "benign": 2236329,
+                        "benign_fraction": 0.22363299709596696,
+                        "category": "Packer",
+                        "description": "Feature NOT Observed: Packer: \"Unusual section name found: /109\"",
+                        "indicator": "Feature NOT Observed: Packer -> \"Unusual section name found: /109\"",
+                        "malware": 337337,
+                        "malware_fraction": 0.033733722265173405,
+                        "probability": 0.13107258914015918,
+                        "scale_factor": 10000000
+                    },
+                    {
+                        "benign": 2232551,
+                        "benign_fraction": 0.2232551250907803,
+                        "category": "Packer",
+                        "description": "Feature NOT Observed: Packer: \"The PE only has 4 import(s).\"",
+                        "indicator": "Feature NOT Observed: Packer -> \"The PE only has 4 import(s).\"",
+                        "malware": 324738,
+                        "malware_fraction": 0.03247380464231582,
+                        "probability": 0.12698526004159436,
+                        "scale_factor": 10000000
+                    },
+                    {
+                        "benign": 1172544,
+                        "benign_fraction": 0.1172544148298722,
+                        "category": "Packer",
+                        "description": "Feature NOT Observed: Packer: \"Unusual section name found: .nah\"",
+                        "indicator": "Feature NOT Observed: Packer -> \"Unusual section name found: .nah\"",
+                        "malware": 93401,
+                        "malware_fraction": 0.009340105294166429,
+                        "probability": 0.07377969666471262,
+                        "scale_factor": 10000000
+                    },
+                    {
+                        "benign": 37992,
+                        "benign_fraction": 0.003799284514748885,
+                        "category": "Strings",
+                        "description": "Feature NOT Observed: Miscellaneous malware strings: \"virus\"",
+                        "indicator": "Feature NOT Observed: Strings -> Miscellaneous malware strings -> \"virus\"",
+                        "malware": 706,
+                        "malware_fraction": 7.06402878833068e-05,
+                        "probability": 0.018253659046620147,
+                        "scale_factor": 10000000
+                    }
+                ],
+                "feature_maliciousness": {
+                    "Mitigation -> Stack Canary -> \"disabled\"": {
+                        "benign": 6899670,
+                        "benign_fraction": 0.6899670141471951,
+                        "category": "Mitigation",
+                        "description": "Stack Canary: \"disabled\"",
+                        "indicator": "Mitigation -> Stack Canary -> \"disabled\"",
+                        "malware": 8868581,
+                        "malware_fraction": 0.8868581641966653,
+                        "probability": 0.5624327771884848,
+                        "scale_factor": 10000000
+                    },
+                    "Packer -> \"The PE only has 0 import(s).\"": {
+                        "benign": 1448486,
+                        "benign_fraction": 0.14484869085418292,
+                        "category": "Packer",
+                        "description": "Packer: \"The PE only has 0 import(s).\"",
+                        "indicator": "Packer -> \"The PE only has 0 import(s).\"",
+                        "malware": 373916,
+                        "malware_fraction": 0.03739169073907601,
+                        "probability": 0.2051778558197396,
+                        "scale_factor": 10000000
+                    },
+                    "Summary -> Compilation Date -> \"1970-Jan-01 00:00:00\"": {
+                        "benign": 482475,
+                        "benign_fraction": 0.048247547429036315,
+                        "category": "Summary",
+                        "description": "Compilation Date: \"1970-Jan-01 00:00:00\"",
+                        "indicator": "Summary -> Compilation Date -> \"1970-Jan-01 00:00:00\"",
+                        "malware": 383130,
+                        "malware_fraction": 0.038313041463436025,
+                        "probability": 0.4426153051133861,
+                        "scale_factor": 10000000
+                    }
+                },
+                "genetic_analysis": {
+                    "neighbor_info": {
+                        "0008d1f5943823011e26092ae7c9484103833920fd72cad2f90e29b118cb9185": {
+                            "filepath": "0008d1f5943823011e26092ae7c9484103833920fd72cad2f90e29b118cb9185",
+                            "is_malware": true,
+                            "match_percentage": 0.4375,
+                            "score": 68.60000000000001
+                        },
+                        "0561342c768d51ac4de8696f25f11abee3988c1dab11e3b4b34ee5ab5313a7ac": {
+                            "filepath": "0561342c768d51ac4de8696f25f11abee3988c1dab11e3b4b34ee5ab5313a7ac",
+                            "is_malware": false,
+                            "match_percentage": 0.40625,
+                            "score": 63.7
+                        },
+                        "2e64a43ec5963654d5677b7b5259a817cdf3ead50a655b90db9cb0ad1706303b": {
+                            "filepath": "2e64a43ec5963654d5677b7b5259a817cdf3ead50a655b90db9cb0ad1706303b",
+                            "is_malware": false,
+                            "match_percentage": 0.40625,
+                            "score": 63.7
+                        },
+                        "39c20255a65bbdbfdb5e112eedbc347b2349818957cb7a7f0a58219e9c87b452": {
+                            "filepath": "39c20255a65bbdbfdb5e112eedbc347b2349818957cb7a7f0a58219e9c87b452",
+                            "is_malware": false,
+                            "match_percentage": 0.4375,
+                            "score": 68.60000000000001
+                        },
+                        "c3c40ce76bcc06ec86cca74ab901709b3f9099bc2d5f7be6c24ef1b9fba73b8e": {
+                            "filepath": "c3c40ce76bcc06ec86cca74ab901709b3f9099bc2d5f7be6c24ef1b9fba73b8e",
+                            "is_malware": false,
+                            "match_percentage": 0.9375,
+                            "score": 147
+                        },
+                        "d0a3da41874d9b1175ca331fb771d1d3d40b91a1a795c1e6ea939abd62be82a4": {
+                            "filepath": "d0a3da41874d9b1175ca331fb771d1d3d40b91a1a795c1e6ea939abd62be82a4",
+                            "is_malware": true,
+                            "match_percentage": 0.46875,
+                            "score": 73.5
+                        }
+                    },
+                    "neighbor_matrix": {
+                        "0008d1f5943823011e26092ae7c9484103833920fd72cad2f90e29b118cb9185": {
+                            "0_4439": false,
+                            "10_14": true,
+                            "11_4026": false,
+                            "12_2508": true,
+                            "13_2702": true,
+                            "14_4048": false,
+                            "15_2678": false,
+                            "16_4201": false,
+                            "17_3598": false,
+                            "18_4775": true,
+                            "19_2746": false,
+                            "1_1616": false,
+                            "20_2998": false,
+                            "21_68": false,
+                            "22_688": true,
+                            "23_3746": false,
+                            "24_4642": false,
+                            "25_2932": true,
+                            "26_1445": false,
+                            "27_3466": false,
+                            "28_2995": true,
+                            "29_3979": false,
+                            "2_990": false,
+                            "30_2865": true,
+                            "31_1903": true,
+                            "3_1914": true,
+                            "4_3468": true,
+                            "5_2265": false,
+                            "6_3424": true,
+                            "7_1651": true,
+                            "8_2264": true,
+                            "9_4471": false
+                        },
+                        "0561342c768d51ac4de8696f25f11abee3988c1dab11e3b4b34ee5ab5313a7ac": {
+                            "0_4439": false,
+                            "10_14": false,
+                            "11_4026": false,
+                            "12_2508": false,
+                            "13_2702": true,
+                            "14_4048": true,
+                            "15_2678": false,
+                            "16_4201": false,
+                            "17_3598": true,
+                            "18_4775": true,
+                            "19_2746": false,
+                            "1_1616": false,
+                            "20_2998": true,
+                            "21_68": false,
+                            "22_688": false,
+                            "23_3746": true,
+                            "24_4642": false,
+                            "25_2932": false,
+                            "26_1445": true,
+                            "27_3466": true,
+                            "28_2995": false,
+                            "29_3979": false,
+                            "2_990": false,
+                            "30_2865": true,
+                            "31_1903": false,
+                            "3_1914": false,
+                            "4_3468": true,
+                            "5_2265": false,
+                            "6_3424": true,
+                            "7_1651": true,
+                            "8_2264": true,
+                            "9_4471": false
+                        },
+                        "2e64a43ec5963654d5677b7b5259a817cdf3ead50a655b90db9cb0ad1706303b": {
+                            "0_4439": false,
+                            "10_14": false,
+                            "11_4026": false,
+                            "12_2508": true,
+                            "13_2702": true,
+                            "14_4048": true,
+                            "15_2678": false,
+                            "16_4201": false,
+                            "17_3598": true,
+                            "18_4775": true,
+                            "19_2746": false,
+                            "1_1616": false,
+                            "20_2998": true,
+                            "21_68": false,
+                            "22_688": true,
+                            "23_3746": true,
+                            "24_4642": false,
+                            "25_2932": false,
+                            "26_1445": false,
+                            "27_3466": true,
+                            "28_2995": true,
+                            "29_3979": false,
+                            "2_990": false,
+                            "30_2865": true,
+                            "31_1903": false,
+                            "3_1914": false,
+                            "4_3468": true,
+                            "5_2265": false,
+                            "6_3424": true,
+                            "7_1651": false,
+                            "8_2264": false,
+                            "9_4471": false
+                        },
+                        "39c20255a65bbdbfdb5e112eedbc347b2349818957cb7a7f0a58219e9c87b452": {
+                            "0_4439": false,
+                            "10_14": true,
+                            "11_4026": false,
+                            "12_2508": true,
+                            "13_2702": true,
+                            "14_4048": false,
+                            "15_2678": false,
+                            "16_4201": false,
+                            "17_3598": false,
+                            "18_4775": true,
+                            "19_2746": false,
+                            "1_1616": false,
+                            "20_2998": false,
+                            "21_68": false,
+                            "22_688": true,
+                            "23_3746": false,
+                            "24_4642": false,
+                            "25_2932": true,
+                            "26_1445": false,
+                            "27_3466": false,
+                            "28_2995": true,
+                            "29_3979": false,
+                            "2_990": false,
+                            "30_2865": true,
+                            "31_1903": true,
+                            "3_1914": true,
+                            "4_3468": true,
+                            "5_2265": false,
+                            "6_3424": true,
+                            "7_1651": true,
+                            "8_2264": true,
+                            "9_4471": false
+                        },
+                        "c3c40ce76bcc06ec86cca74ab901709b3f9099bc2d5f7be6c24ef1b9fba73b8e": {
+                            "0_4439": true,
+                            "10_14": true,
+                            "11_4026": true,
+                            "12_2508": true,
+                            "13_2702": true,
+                            "14_4048": true,
+                            "15_2678": false,
+                            "16_4201": true,
+                            "17_3598": true,
+                            "18_4775": true,
+                            "19_2746": true,
+                            "1_1616": true,
+                            "20_2998": true,
+                            "21_68": true,
+                            "22_688": true,
+                            "23_3746": true,
+                            "24_4642": true,
+                            "25_2932": true,
+                            "26_1445": false,
+                            "27_3466": true,
+                            "28_2995": true,
+                            "29_3979": true,
+                            "2_990": true,
+                            "30_2865": true,
+                            "31_1903": true,
+                            "3_1914": true,
+                            "4_3468": true,
+                            "5_2265": true,
+                            "6_3424": true,
+                            "7_1651": true,
+                            "8_2264": true,
+                            "9_4471": true
+                        },
+                        "d0a3da41874d9b1175ca331fb771d1d3d40b91a1a795c1e6ea939abd62be82a4": {
+                            "0_4439": false,
+                            "10_14": false,
+                            "11_4026": false,
+                            "12_2508": false,
+                            "13_2702": true,
+                            "14_4048": true,
+                            "15_2678": false,
+                            "16_4201": false,
+                            "17_3598": false,
+                            "18_4775": true,
+                            "19_2746": false,
+                            "1_1616": true,
+                            "20_2998": true,
+                            "21_68": false,
+                            "22_688": true,
+                            "23_3746": false,
+                            "24_4642": false,
+                            "25_2932": false,
+                            "26_1445": false,
+                            "27_3466": false,
+                            "28_2995": true,
+                            "29_3979": true,
+                            "2_990": true,
+                            "30_2865": true,
+                            "31_1903": true,
+                            "3_1914": false,
+                            "4_3468": true,
+                            "5_2265": false,
+                            "6_3424": true,
+                            "7_1651": true,
+                            "8_2264": true,
+                            "9_4471": false
+                        }
+                    }
+                }
+            },
+            "analyzed_counts": {
+                "black_box": {
+                    "benign": 0,
+                    "malware": 0
+                },
+                "feature_intersections": {
+                    "benign": -1,
+                    "malware": -1
+                },
+                "feature_maliciousness": {
+                    "benign": -1,
+                    "malware": -1
+                },
+                "genetic_analysis": {
+                    "benign": 4940213,
+                    "malware": 4785209
+                }
+            },
+            "overall_score": 28,
+            "overall_scores": {
+                "black_box": 28,
+                "feature_intersections": 6,
+                "feature_maliciousness": 6,
+                "genetic_analysis": 21
+            }
+        },
+        "ml_filepath": {
+            "analyses": {
+                "neighbor_maliciousness": {
+                    "most_similar": [],
+                    "most_similar_benign": [],
+                    "most_similar_malware": []
+                }
+            },
+            "analyzed_counts": {
+                "neighbor_maliciousness": {
+                    "benign": -1,
+                    "malware": -1
+                }
+            },
+            "overall_score": -1,
+            "overall_scores": {
+                "neighbor_maliciousness": -1
+            }
+        },
+        "ml_inputs": {
+            "filepath": null
+        },
         "object_type": "file",
+        "pe_analysis": {
+            "digisig": {
+                "certificate_source": "unknown",
+                "program_name": "",
+                "signer": [],
+                "signing_date": "",
+                "timescert": {
+                    "timesigner": [],
+                    "timestamp": ""
+                },
+                "url": "",
+                "verified": "Unsigned"
+            },
+            "export": {},
+            "filesize": 8192,
+            "imagebase": 4194304,
+            "imagesize": 8192,
+            "import": [],
+            "import_hash": "0",
+            "languages": [],
+            "machineid": "I386",
+            "numberofsections": 1,
+            "pdbstring": "No debug info",
+            "peflags": "EXECUTABLE_IMAGE, NEED_32BIT_MACHINE",
+            "resources": [],
+            "sections": [
+                {
+                    "characteristics": [
+                        "CNT_CODE",
+                        "MEM_EXECUTE",
+                        "MEM_READ"
+                    ],
+                    "entropy": 0.020393135236084953,
+                    "name": ".text",
+                    "number": 1,
+                    "physicaladdress": 512,
+                    "sizeofrawdata": 512,
+                    "virtualaddress": 4096,
+                    "virtualsize": 512
+                }
+            ],
+            "subsystem": "WINDOWS_CUI",
+            "timedate": "1970-01-01T00:00:00+00:00",
+            "versioninfo": {
+                "comments": "n/a",
+                "companyname": "n/a",
+                "filedescription": "n/a",
+                "fileversion": "n/a",
+                "internalname": "n/a",
+                "legalcopyright": "n/a",
+                "legaltrademarks": "",
+                "originalfilename": "n/a",
+                "privatebuild": "",
+                "productname": "n/a",
+                "productversion": "n/a",
+                "specialbuild": ""
+            }
+        },
         "reputation": {
             "first_seen": "",
             "last_seen": "",
@@ -26,16 +544,16 @@
             "score": 30,
             "score_string": "Unknown reputation"
         },
-        "schema_version": "1.2.16794176",
-        "score": 50,
-        "submission": "2026-03-25T18:48:48Z",
+        "schema_version": "1.2.4398080082496",
+        "score": 60,
+        "submission": "2026-04-06T09:45:58Z",
         "target": {
             "file_name": "my_test.exe",
-            "mime_type": "text/plain",
-            "object_id": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c",
-            "sha1": "0a715f238c444f2077bfb054a09680b014d52974",
-            "sha256": "6cac92a4611460c0b1e1a7b7453eae329b977fb8adf026f6c904d60947e2a46c"
+            "mime_type": "application/x-dosexec",
+            "object_id": "aaf13fcc2d3d79c5dc28df2cf2f6e8d97670c07f540da2527cab69c4bd44d003",
+            "sha1": "4ea7bc212501974366f7260eb1aa432f6141796c",
+            "sha256": "aaf13fcc2d3d79c5dc28df2cf2f6e8d97670c07f540da2527cab69c4bd44d003"
         }
     },
-    "requestId": "6d9c3dc9-5020-4c0b-9fa3-b0343f79e2b1"
+    "requestId": "5bf28a7f-6cf1-4d47-83b9-884754d79e80"
 }

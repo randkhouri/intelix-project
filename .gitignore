@@ -4,6 +4,3 @@ __pycache__/
 
 # macOS / editor noise
 .DS_Store
-
-# Optional duplicate / zip staging (not part of the app)
-submission/
